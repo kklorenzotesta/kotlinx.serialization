@@ -140,6 +140,45 @@ sealed class MapLikeSerializer<TKey, TVal, TCollection, TBuilder: MutableMap<TKe
     }
 }
 
+abstract class PrimitiveArraySerializer<TElement, TCollection, TBuilder : PrimitiveArraySerializer<TElement, TCollection, TBuilder>.Builder>
+internal constructor(
+    primitiveSerializer: KSerializer<TElement>,
+    primitiveDescriptor: PrimitiveDescriptor
+) : ListLikeSerializer<TElement, TCollection, TBuilder>(primitiveSerializer) {
+    final override val descriptor = PrimitiveArrayDescriptor(primitiveDescriptor)
+
+    abstract inner class Builder internal constructor() {
+        abstract val pos: Int
+        abstract fun ensureCapacity(requiredCapacity: Int = pos + 1)
+        abstract fun build(): TCollection
+    }
+
+    final override fun TBuilder.builderSize() = pos
+    final override fun TBuilder.toResult(): TCollection = build()
+    final override fun TBuilder.checkCapacity(size: Int) = ensureCapacity(size)
+
+    // these methods lead to boxing
+    final override fun TCollection.objIterator(): Iterator<TElement> = throw AssertionError("Must not be used")
+    final override fun TBuilder.insert(index: Int, element: TElement) = throw AssertionError("Must not be used")
+
+    protected abstract override fun readItem(
+        decoder: CompositeDecoder,
+        index: Int,
+        builder: TBuilder,
+        checkIndex: Boolean
+    )
+
+    protected abstract fun writeContents(encoder: CompositeEncoder, content: TCollection, size: Int)
+
+    final override fun serialize(encoder: Encoder, obj: TCollection) {
+        val size = obj.objSize()
+        @Suppress("NAME_SHADOWING")
+        val encoder = encoder.beginCollection(descriptor, size, *typeParams)
+        writeContents(encoder, obj, size)
+        encoder.endStructure(descriptor)
+    }
+}
+
 // todo: can be more efficient when array size is know in advance, this one always uses temporary ArrayList as builder
 class ReferenceArraySerializer<T: Any, E: T?>(private val kClass: KClass<T>, eSerializer: KSerializer<E>):
         ListLikeSerializer<E, Array<E>, ArrayList<E>>(eSerializer) {

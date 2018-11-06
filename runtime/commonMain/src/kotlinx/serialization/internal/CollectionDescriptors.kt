@@ -66,6 +66,10 @@ internal const val HASH_SET_NAME = "kotlin.collections.HashSet"
 internal const val LINKED_HASH_MAP_NAME = "kotlin.collections.LinkedHashMap"
 internal const val HASH_MAP_NAME = "kotlin.collections.HashMap"
 
+class PrimitiveArrayDescriptor(primitive: PrimitiveDescriptor): ListLikeDescriptor(primitive) {
+    override val name: String = "${primitive.name}Array"
+}
+
 class ArrayClassDesc(elementDesc: SerialDescriptor) : ListLikeDescriptor(elementDesc) {
     override val name: String get() = ARRAY_NAME
 }
