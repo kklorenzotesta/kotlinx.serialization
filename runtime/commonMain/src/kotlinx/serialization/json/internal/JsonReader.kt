@@ -5,7 +5,7 @@
 package kotlinx.serialization.json.internal
 
 import kotlinx.serialization.SharedImmutable
-import kotlinx.serialization.json.JsonDecodingException
+import kotlinx.serialization.json.*
 import kotlinx.serialization.json.internal.EscapeCharMappings.ESCAPE_2_CHAR
 import kotlin.jvm.JvmField
 
@@ -162,35 +162,10 @@ internal class JsonReader(private val source: String) {
         length += addLen
     }
 
-    fun nextJsonKey() {
-        val source = source
-        var currentPosition = currentPosition
-        val maxLen = source.length
-        // TODO this one can be optimized when we roll our benchmarks
-        while (currentPosition < maxLen) {
-            when (charToTokenClass(source[currentPosition])) {
-                TC_WS -> currentPosition++ // skip whitespace
-                TC_OTHER -> {
-                    nextLiteral(source, currentPosition)
-                    return
-                }
-                TC_STRING -> {
-                    nextString(source, currentPosition)
-                    return
-                }
-                else -> {
-                    fail("Expected next key name, but had trailing comma instead", currentPosition)
-                }
-            }
-        }
-        fail("Unexpected EOF", currentPosition)
-    }
-
     fun nextToken() {
         val source = source
         var currentPosition = currentPosition
-        val maxLen = source.length
-        while (currentPosition < maxLen) {
+        while (currentPosition < source.length) {
             val ch = source[currentPosition]
             when (val tc = charToTokenClass(ch)) {
                 TC_WS -> currentPosition++ // skip whitespace
@@ -218,28 +193,24 @@ internal class JsonReader(private val source: String) {
     private fun nextLiteral(source: String, startPos: Int) {
         tokenPosition = startPos
         offset = startPos
-        var curPos = startPos
-        val maxLen = source.length
-        while (true) {
-            curPos++
-            if (curPos >= maxLen || charToTokenClass(source[curPos]) != TC_OTHER) break
+        var currentPosition = startPos
+        while (currentPosition < source.length && charToTokenClass(source[currentPosition]) == TC_OTHER) {
+            currentPosition++
         }
-        this.currentPosition = curPos
-        length = curPos - offset
+        this.currentPosition = currentPosition
+        length = currentPosition - offset
         tokenClass = if (rangeEquals(source, offset, length, NULL)) TC_NULL else TC_OTHER
     }
 
-    private fun nextString(source: String, statPosition: Int) {
-        tokenPosition = statPosition
+    private fun nextString(source: String, startPosition: Int) {
+        tokenPosition = startPosition
         length = 0 // in buffer
-        var currentPosition = statPosition + 1
+        var currentPosition = startPosition + 1
         var lastPosition = currentPosition
         val length = source.length
-        parse@ while (true) {
+        while (source[currentPosition] != STRING) {
             if (currentPosition >= length) fail("Unexpected end in string", currentPosition)
-            if (source[currentPosition] == STRING) {
-                break@parse
-            } else if (source[currentPosition] == STRING_ESC) {
+            if (source[currentPosition] == STRING_ESC) {
                 appendRange(source, lastPosition, currentPosition)
                 val newPos = appendEsc(source, currentPosition + 1)
                 currentPosition = newPos
@@ -248,9 +219,9 @@ internal class JsonReader(private val source: String) {
                 currentPosition++
             }
         }
-        if (lastPosition == statPosition + 1) {
+        if (lastPosition == startPosition + 1) {
             // there was no escaped chars
-            this.offset = lastPosition
+            offset = lastPosition
             this.length = currentPosition - lastPosition
         } else {
             // some escaped chars were there
@@ -262,17 +233,17 @@ internal class JsonReader(private val source: String) {
     }
 
     private fun appendEsc(source: String, startPos: Int): Int {
-        var curPos = startPos
-        require(curPos < source.length, curPos) { "Unexpected end after escape char" }
-        val curChar = source[curPos++]
+        var currentPosition = startPos
+        require(currentPosition < source.length, currentPosition) { "Unexpected end after escape char" }
+        val curChar = source[currentPosition++]
         if (curChar == UNICODE_ESC) {
-            curPos = appendHex(source, curPos)
+            currentPosition = appendHex(source, currentPosition)
         } else {
             val c = escapeToChar(curChar.toInt())
-            require(c != INVALID, curPos) { "Invalid escaped char '$curChar'" }
+            require(c != INVALID, currentPosition) { "Invalid escaped char '$curChar'" }
             append(c)
         }
-        return curPos
+        return currentPosition
     }
 
     private fun appendHex(source: String, startPos: Int): Int {
@@ -319,7 +290,7 @@ internal class JsonReader(private val source: String) {
     }
 
     public fun fail(message: String, position: Int = currentPosition): Nothing {
-        throw JsonParsingException("$message at position $position in $source")
+        throw JsonDecodingException(position, message)
     }
 
     internal inline fun require(condition: Boolean, position: Int = currentPosition, message: () -> String) {

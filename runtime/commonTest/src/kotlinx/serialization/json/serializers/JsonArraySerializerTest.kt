@@ -39,10 +39,10 @@ class JsonArraySerializerTest : JsonTestBase() {
     @Test
     fun testMissingCommas() = parametrizedTest { useStreaming ->
         val message = "Expected end of the array or comma"
-        assertFailsWith<JsonParsingException>(message) { nonStrict.parse(JsonArraySerializer, "[a b c]", useStreaming) }
-        assertFailsWith<JsonParsingException>(message) { nonStrict.parse(JsonArraySerializer, "[ 1 2 3 ]", useStreaming) }
-        assertFailsWith<JsonParsingException>(message) { nonStrict.parse(JsonArraySerializer, "[null 1 null]", useStreaming) }
-        assertFailsWith<JsonParsingException>(message) { nonStrict.parse(JsonArraySerializer, "[1 \n 2]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(message) { nonStrict.parse(JsonArraySerializer, "[a b c]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(message) { nonStrict.parse(JsonArraySerializer, "[ 1 2 3 ]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(message) { nonStrict.parse(JsonArraySerializer, "[null 1 null]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(message) { nonStrict.parse(JsonArraySerializer, "[1 \n 2]", useStreaming) }
     }
 
     @Test
@@ -65,16 +65,16 @@ class JsonArraySerializerTest : JsonTestBase() {
     fun testExcessiveCommas() = parametrizedTest { useStreaming ->
         val trailing = "Unexpected trailing comma"
         val leading = "Unexpected leading comma"
-        assertFailsWith<JsonParsingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[a,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,1]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,1,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,,1]", useStreaming) }
-        assertFailsWith<JsonParsingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[1,,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[1,,2]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,   ,]", useStreaming) }
-        assertFailsWith<JsonParsingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,\n,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[a,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,1]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,1,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,,1]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[1,,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(trailing) { nonStrict.parse(JsonArraySerializer, "[1,,2]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,   ,]", useStreaming) }
+        assertFailsWith<JsonDecodingException>(leading) { nonStrict.parse(JsonArraySerializer, "[,\n,]", useStreaming) }
     }
 
     private fun prebuiltJson(): JsonArray {
