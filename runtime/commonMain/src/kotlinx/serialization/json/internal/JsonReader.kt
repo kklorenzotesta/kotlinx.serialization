@@ -209,12 +209,12 @@ internal class JsonReader(private val source: String) {
         var lastPosition = currentPosition
         val length = source.length
         while (source[currentPosition] != STRING) {
-            if (currentPosition >= length) fail("Unexpected end in string", currentPosition)
+            if (currentPosition >= length) fail("Unexpected EOF", currentPosition)
             if (source[currentPosition] == STRING_ESC) {
                 appendRange(source, lastPosition, currentPosition)
-                val newPos = appendEsc(source, currentPosition + 1)
-                currentPosition = newPos
-                lastPosition = newPos
+                val newPosition = appendEsc(source, currentPosition + 1)
+                currentPosition = newPosition
+                lastPosition = newPosition
             } else {
                 currentPosition++
             }
@@ -232,17 +232,17 @@ internal class JsonReader(private val source: String) {
         tokenClass = TC_STRING
     }
 
-    private fun appendEsc(source: String, startPos: Int): Int {
-        var currentPosition = startPos
-        require(currentPosition < source.length, currentPosition) { "Unexpected end after escape char" }
-        val curChar = source[currentPosition++]
-        if (curChar == UNICODE_ESC) {
-            currentPosition = appendHex(source, currentPosition)
-        } else {
-            val c = escapeToChar(curChar.toInt())
-            require(c != INVALID, currentPosition) { "Invalid escaped char '$curChar'" }
-            append(c)
+    private fun appendEsc(source: String, startPosition: Int): Int {
+        var currentPosition = startPosition
+        require(currentPosition < source.length, currentPosition) { "Unexpected EOF after escape character" }
+        val currentChar = source[currentPosition++]
+        if (currentChar == UNICODE_ESC) {
+            return appendHex(source, currentPosition)
         }
+
+        val c = escapeToChar(currentChar.toInt())
+        require(c != INVALID, currentPosition) { "Invalid escaped char '$currentChar'" }
+        append(c)
         return currentPosition
     }
 
@@ -297,9 +297,9 @@ internal class JsonReader(private val source: String) {
         if (!condition) fail(message(), position)
     }
 
-    private fun fromHexChar(source: String, curPos: Int): Int {
-        require(curPos < source.length, curPos) { "Unexpected end in unicode escape" }
-        return when (val curChar = source[curPos]) {
+    private fun fromHexChar(source: String, currentPosition: Int): Int {
+        require(currentPosition < source.length, currentPosition) { "Unexpected EOF during unicode escape" }
+        return when (val curChar = source[currentPosition]) {
             in '0'..'9' -> curChar.toInt() - '0'.toInt()
             in 'a'..'f' -> curChar.toInt() - 'a'.toInt() + 10
             in 'A'..'F' -> curChar.toInt() - 'A'.toInt() + 10
